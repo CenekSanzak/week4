@@ -5,13 +5,30 @@ import { providers } from "ethers"
 import Head from "next/head"
 import React from "react"
 import styles from "../styles/Home.module.css"
+import { useForm } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
+
+
+const personSchema = yup.object({
+    firstName: yup.string().defined(),
+    lastName: yup.string().default('').nullable(),
+    email: yup.string().nullable().email(),
+    age: yup.number().nullable().min(0).max(120),
+});
+
+interface Person extends yup.InferType<typeof personSchema> {
+}
+
 
 export default function Home() {
-    const [logs, setLogs] = React.useState("Connect your wallet and greet!")
 
+    const [logs, setLogs] = React.useState("Connect your wallet and greet!")
+    const { register, handleSubmit, formState: { errors } } = useForm<Person>(yupResolver(personSchema));
+    const onSubmit = handleSubmit((data: any) => console.log(data));
+    const [newGreeter, setNewGreeter] = React.useState<ZkIdentity | null>(null)
     async function greet() {
         setLogs("Creating your Semaphore identity...")
-
         const provider = (await detectEthereumProvider()) as any
 
         await provider.request({ method: "eth_requestAccounts" })
@@ -29,6 +46,7 @@ export default function Home() {
         setLogs("Creating your Semaphore proof...")
 
         const greeting = "Hello world"
+        setNewGreeter(identity)
 
         const witness = Semaphore.genWitness(
             identity.getTrapdoor(),
@@ -76,6 +94,27 @@ export default function Home() {
 
                 <div onClick={() => greet()} className={styles.button}>
                     Greet
+                </div>
+                <div>
+                    {newGreeter }
+                </div>
+                <div>
+                    <form onSubmit={onSubmit}>
+
+                        <input {...register("firstName")} placeholder="First Name" />
+                        {errors?.firstName && <p>{errors.firstName.message}</p>}
+                        <br/>
+                        <input {...register("lastName")} placeholder="Last Name" />
+                        {errors?.lastName && <p>{errors.lastName.message}</p>}
+                        <br/>
+                        <input {...register("email")} placeholder="Email" />
+                        {errors?.email && <p>{errors.email.message}</p>}
+                        <br/>
+                        <input {...register("age")} placeholder="Age" />
+                        {errors?.age && <p>{errors.age.message}</p>}
+                        <br/>
+                        <input type="submit" />
+                    </form>
                 </div>
             </main>
         </div>
